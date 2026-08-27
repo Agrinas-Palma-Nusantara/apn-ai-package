@@ -915,10 +915,12 @@ function elementClass(): CustomElementConstructor {
       target.opener = null
       target.document.title = title
       target.document.body.textContent = 'Memuat dokumen…'
+      target.focus()
       try {
         const blob = await this.client.fetchDocument(documentId)
         const objectUrl = URL.createObjectURL(blob)
         target.location.replace(objectUrl)
+        target.focus()
         window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
       } catch (error) {
         target.close()
