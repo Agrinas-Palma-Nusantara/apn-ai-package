@@ -1,4 +1,4 @@
-# `@pt-agrinas-palma-nusantara/chat-widget`
+# `@danyawn/chat-widget`
 
 Headless TypeScript client and branded Web Component for the shared APN Chat Platform.
 
@@ -7,13 +7,13 @@ Headless TypeScript client and branded Web Component for the shared APN Chat Pla
 Add the APN package scope to the consuming app's `.npmrc`:
 
 ```ini
-@pt-agrinas-palma-nusantara:registry=https://npm.pkg.github.com
+@danyawn:registry=https://npm.pkg.github.com
 ```
 
 Then install:
 
 ```bash
-npm install --save-exact @pt-agrinas-palma-nusantara/chat-widget@0.1.0
+npm install --save-exact @danyawn/chat-widget@0.1.0
 ```
 
 The GitHub token used by npm needs `read:packages`. Publish manually with a token that has `write:packages`:
@@ -64,7 +64,7 @@ Render the adapter once near the root layout. It mounts the isolated Web Compone
 ```tsx
 'use client'
 
-import { ChatAgriaUI } from '@pt-agrinas-palma-nusantara/chat-widget/react'
+import { ChatAgriaUI } from '@danyawn/chat-widget/react'
 
 export function AppChat() {
   return (
@@ -85,7 +85,7 @@ React is a peer dependency, so the package uses the consuming application's exis
 ### Web Component / plain TypeScript
 
 ```ts
-import { mountChatWidget } from '@pt-agrinas-palma-nusantara/chat-widget'
+import { mountChatWidget } from '@danyawn/chat-widget'
 
 const widget = mountChatWidget({
   apiBaseUrl: 'https://chat-api.agrinas.id',
@@ -110,7 +110,7 @@ The widget uses Shadow DOM, fixed APN branding, and only exposes position and z-
 ## Headless client
 
 ```ts
-import { createChatClient } from '@pt-agrinas-palma-nusantara/chat-widget'
+import { createChatClient } from '@danyawn/chat-widget'
 
 const chat = createChatClient({ apiBaseUrl, getAccessToken })
 

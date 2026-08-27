@@ -31,8 +31,8 @@ try {
     include: ['consumer.ts'],
   }))
   writeFileSync(join(temporary, 'consumer.ts'), `
-import { createChatClient, mountChatWidget } from '@pt-agrinas-palma-nusantara/chat-widget'
-import { ChatAgriaUI } from '@pt-agrinas-palma-nusantara/chat-widget/react'
+import { createChatClient, mountChatWidget } from '@danyawn/chat-widget'
+import { ChatAgriaUI } from '@danyawn/chat-widget/react'
 
 const getAccessToken = async () => 'token'
 const client = createChatClient({ apiBaseUrl: 'https://chat.example', getAccessToken })
@@ -53,11 +53,11 @@ void ChatAgriaUI
   const manifest = JSON.parse(readFileSync(join(
     temporary,
     'node_modules',
-    '@pt-agrinas-palma-nusantara',
+    '@danyawn',
     'chat-widget',
     'package.json',
   ), 'utf8'))
-  if (manifest.name !== '@pt-agrinas-palma-nusantara/chat-widget') {
+  if (manifest.name !== '@danyawn/chat-widget') {
     throw new Error('Installed package name does not match the release scope.')
   }
   process.stdout.write('Package consumer smoke test passed.\n')
