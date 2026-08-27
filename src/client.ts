@@ -66,5 +66,16 @@ export function createChatClient(config: ChatClientConfig): ChatClient {
       if (!response.body) throw new Error('Chat stream tidak tersedia.')
       await consumeSse(response.body, input.onEvent)
     },
+    async fetchDocument(documentId: string, signal?: AbortSignal) {
+      const response = await request(
+        `/api/integrations/documents/${encodeURIComponent(documentId)}/file`,
+        {
+          method: 'GET',
+          headers: { Accept: 'application/pdf, application/octet-stream' },
+          signal,
+        },
+      )
+      return response.blob()
+    },
   }
 }

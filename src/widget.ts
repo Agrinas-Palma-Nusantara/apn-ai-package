@@ -1,4 +1,5 @@
 import { createChatClient } from './client.js'
+import { normalizeListSpacing, parseSourceNumbers } from './rich-text.js'
 import type {
   ChatClient,
   ChatMessage,
@@ -284,6 +285,27 @@ const styles = `
     font-size: 0.9em;
   }
   .rich-text a { color: var(--apn-green); text-underline-offset: 2px; }
+  .inline-citation {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 1px;
+    padding: 1px 5px;
+    border: 1px solid #cfe2d5;
+    border-radius: 999px;
+    background: var(--apn-green-subtle);
+    color: var(--apn-green) !important;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-decoration: none;
+    vertical-align: 1px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  button.inline-citation { appearance: none; }
+  button.inline-citation:hover { background: var(--apn-green-pill); border-color: #a9cdb5; }
+  button.inline-citation:focus-visible { outline: 2px solid var(--apn-green); outline-offset: 1px; }
+  span.inline-citation { cursor: default; }
 
   /* Citations */
   .citations {
@@ -327,15 +349,20 @@ const styles = `
     font-size: 11px;
     line-height: 1.45;
   }
-  .citation strong {
+  .citation-title {
     display: flex;
     align-items: center;
     gap: 4px;
     color: var(--apn-text-main);
     font-size: 11.5px;
+    font-weight: 700;
     margin-bottom: 2px;
+    text-decoration: none;
   }
-  .citation strong svg { color: var(--apn-green); flex-shrink: 0; }
+  button.citation-title { appearance: none; width: 100%; border: 0; background: transparent; text-align: left; cursor: pointer; }
+  button.citation-title:hover { color: var(--apn-green); text-decoration: underline; text-underline-offset: 2px; }
+  button.citation-title:focus-visible { outline: 2px solid var(--apn-green); outline-offset: 2px; border-radius: 4px; }
+  .citation-title svg { color: var(--apn-green); flex-shrink: 0; }
 
   /* Thinking and streaming */
   .thinking {
@@ -500,14 +527,37 @@ type WidgetElement = HTMLElement & ChatWidgetController & {
 }
 
 const PROVISIONAL_REFUSAL = /^(maaf[, ]|saya (?:belum|tidak)|informasi (?:yang )?(?:cukup )?tidak)/i
+type OpenDocument = (documentId: string, title: string) => void
 
-function appendInlineRichText(parent: HTMLElement, text: string): void {
-  const pattern = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]\n]+\]\(https?:\/\/[^)\s]+\))/g
+function appendInlineRichText(
+  parent: HTMLElement,
+  text: string,
+  sources: ChatMessage['citations'],
+  openDocument: OpenDocument,
+): void {
+  const pattern = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[sumber:\s*\d+(?:\s*,\s*\d+)*\]|\[[^\]\n]+\]\(https?:\/\/[^)\s]+\))/gi
   let cursor = 0
   for (const match of text.matchAll(pattern)) {
     const index = match.index ?? 0
     if (index > cursor) parent.append(document.createTextNode(text.slice(cursor, index)))
     const token = match[0]
+    if (/^\[sumber:/i.test(token)) {
+      for (const number of parseSourceNumbers(token)) {
+        const source = sources[number - 1]
+        const element = document.createElement(source?.documentId ? 'button' : 'span')
+        element.className = 'inline-citation'
+        element.textContent = `[${number}]`
+        element.setAttribute('aria-label', source ? `Buka sumber ${number}: ${source.title}` : `Sumber ${number}`)
+        element.setAttribute('title', source?.title ?? `Sumber ${number}`)
+        if (element instanceof HTMLButtonElement && source?.documentId) {
+          element.type = 'button'
+          element.addEventListener('click', () => openDocument(source.documentId!, source.title))
+        }
+        parent.append(element)
+      }
+      cursor = index + token.length
+      continue
+    }
     let element: HTMLElement
     if (token.startsWith('**')) {
       element = document.createElement('strong')
@@ -532,12 +582,16 @@ function appendInlineRichText(parent: HTMLElement, text: string): void {
   if (cursor < text.length) parent.append(document.createTextNode(text.slice(cursor)))
 }
 
-function renderRichText(text: string): HTMLElement {
+function renderRichText(
+  text: string,
+  sources: ChatMessage['citations'],
+  openDocument: OpenDocument,
+): HTMLElement {
   const root = document.createElement('div')
   root.className = 'rich-text'
   let list: HTMLUListElement | HTMLOListElement | null = null
 
-  for (const rawLine of text.replace(/\r\n?/g, '\n').split('\n')) {
+  for (const rawLine of normalizeListSpacing(text).split('\n')) {
     const line = rawLine.trim()
     if (!line) {
       list = null
@@ -552,7 +606,7 @@ function renderRichText(text: string): HTMLElement {
         root.append(list)
       }
       const item = document.createElement('li')
-      appendInlineRichText(item, (unordered ?? ordered)?.[1] ?? line)
+      appendInlineRichText(item, (unordered ?? ordered)?.[1] ?? line, sources, openDocument)
       list.append(item)
       continue
     }
@@ -560,7 +614,7 @@ function renderRichText(text: string): HTMLElement {
     const heading = line.match(/^(#{1,3})\s+(.+)$/)
     const headingLevel = Math.min((heading?.[1]?.length ?? 0) + 1, 4)
     const block = document.createElement(heading ? `h${headingLevel}` : 'p')
-    appendInlineRichText(block, heading?.[2] ?? line)
+    appendInlineRichText(block, heading?.[2] ?? line, sources, openDocument)
     root.append(block)
   }
   return root
@@ -842,6 +896,29 @@ function elementClass(): CustomElementConstructor {
       return state
     }
 
+    private async openDocument(documentId: string, title: string) {
+      if (!this.client) return
+      const target = window.open('', '_blank')
+      if (!target) {
+        this.error = 'Dokumen tidak dapat dibuka. Izinkan pop-up untuk situs ini.'
+        this.render()
+        return
+      }
+      target.opener = null
+      target.document.title = title
+      target.document.body.textContent = 'Memuat dokumen…'
+      try {
+        const blob = await this.client.fetchDocument(documentId)
+        const objectUrl = URL.createObjectURL(blob)
+        target.location.replace(objectUrl)
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
+      } catch (error) {
+        target.close()
+        this.error = error instanceof Error ? error.message : 'Dokumen gagal dibuka.'
+        this.render()
+      }
+    }
+
     private render() {
       if (!this.messagesElement) return
       this.messagesElement.replaceChildren()
@@ -874,7 +951,11 @@ function elementClass(): CustomElementConstructor {
           if (item.role === 'assistant' && active && (!item.content || holdProvisional)) {
             bubble.append(this.createThinkingState())
           } else if (item.role === 'assistant') {
-            bubble.append(renderRichText(item.content))
+            bubble.append(renderRichText(
+              item.content,
+              item.citations,
+              (documentId, title) => void this.openDocument(documentId, title),
+            ))
             if (active) bubble.append(this.createThinkingState(true))
           } else {
             bubble.textContent = item.content
@@ -893,7 +974,13 @@ function elementClass(): CustomElementConstructor {
             for (const source of item.citations) {
               const citation = document.createElement('div')
               citation.className = 'citation'
-              const citationTitle = document.createElement('strong')
+              const citationTitle = document.createElement(source.documentId ? 'button' : 'strong')
+              citationTitle.className = 'citation-title'
+              if (citationTitle instanceof HTMLButtonElement && source.documentId) {
+                citationTitle.type = 'button'
+                citationTitle.setAttribute('aria-label', `Buka dokumen: ${source.title}`)
+                citationTitle.addEventListener('click', () => void this.openDocument(source.documentId!, source.title))
+              }
               const citationIcon = document.createElement('span')
               citationIcon.innerHTML = DOC_ICON
               const citationLabel = document.createElement('span')

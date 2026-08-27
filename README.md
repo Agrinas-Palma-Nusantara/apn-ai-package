@@ -1,4 +1,4 @@
-# `@agrinas/chat-widget`
+# `@pt-agrinas-palma-nusantara/chat-widget`
 
 Headless TypeScript client and branded Web Component for the shared APN Chat Platform.
 
@@ -7,13 +7,13 @@ Headless TypeScript client and branded Web Component for the shared APN Chat Pla
 Add the APN package scope to the consuming app's `.npmrc`:
 
 ```ini
-@agrinas:registry=https://npm.pkg.github.com
+@pt-agrinas-palma-nusantara:registry=https://npm.pkg.github.com
 ```
 
 Then install:
 
 ```bash
-npm install @agrinas/chat-widget
+npm install --save-exact @pt-agrinas-palma-nusantara/chat-widget@0.1.0
 ```
 
 The GitHub token used by npm needs `read:packages`. Publish manually with a token that has `write:packages`:
@@ -64,7 +64,7 @@ Render the adapter once near the root layout. It mounts the isolated Web Compone
 ```tsx
 'use client'
 
-import { ChatAgriaUI } from '@agrinas/chat-widget/react'
+import { ChatAgriaUI } from '@pt-agrinas-palma-nusantara/chat-widget/react'
 
 export function AppChat() {
   return (
@@ -85,7 +85,7 @@ React is a peer dependency, so the package uses the consuming application's exis
 ### Web Component / plain TypeScript
 
 ```ts
-import { mountChatWidget } from '@agrinas/chat-widget'
+import { mountChatWidget } from '@pt-agrinas-palma-nusantara/chat-widget'
 
 const widget = mountChatWidget({
   apiBaseUrl: 'https://chat-api.agrinas.id',
@@ -105,12 +105,12 @@ widget.newConversation()
 widget.destroy()
 ```
 
-The widget uses Shadow DOM, fixed APN branding, and only exposes position and z-index options. Messages live only in widget memory and disappear on refresh, `newConversation()`, or `destroy()`. Assistant responses render a safe Markdown subset (paragraphs, lists, headings, emphasis, inline code, and HTTP links). Citation UI shows source title and snippet; document files are not fetched.
+The widget uses Shadow DOM, fixed APN branding, and only exposes position and z-index options. Messages live only in widget memory and disappear on refresh, `newConversation()`, or `destroy()`. Assistant responses render a safe Markdown subset (paragraphs, lists, headings, emphasis, inline code, and HTTP links). Citation links fetch document files with the same short-lived Bearer Chat Token; tokens are never placed in document URLs.
 
 ## Headless client
 
 ```ts
-import { createChatClient } from '@agrinas/chat-widget'
+import { createChatClient } from '@pt-agrinas-palma-nusantara/chat-widget'
 
 const chat = createChatClient({ apiBaseUrl, getAccessToken })
 
@@ -125,3 +125,9 @@ await chat.streamMessage({
 ```
 
 Only the ten most recent history items are sent. The stateless integration endpoint never creates a backend conversation.
+
+Documents can also be fetched from the headless client:
+
+```ts
+const pdf = await chat.fetchDocument(documentId)
+```

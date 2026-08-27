@@ -43,6 +43,7 @@ export interface StreamMessageInput {
 
 export interface ChatClient {
   streamMessage(input: StreamMessageInput): Promise<void>
+  fetchDocument(documentId: string, signal?: AbortSignal): Promise<Blob>
 }
 
 export interface ChatWidgetConfig extends ChatClientConfig {
