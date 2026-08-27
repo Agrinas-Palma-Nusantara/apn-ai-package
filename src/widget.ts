@@ -1,4 +1,5 @@
 import { createChatClient } from './client.js'
+import { APN_LOGO_DATA_URL } from './logo.js'
 import { normalizeListSpacing, parseSourceNumbers } from './rich-text.js'
 import type {
   ChatClient,
@@ -15,7 +16,6 @@ const STOP_ICON = `<svg viewBox="0 0 24 24" width="12" height="12" fill="current
 const PLUS_ICON = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`
 const CLOSE_ICON = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`
 const DOC_ICON = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`
-const SPARKLE_ICON = `<svg viewBox="0 0 40 40" width="28" height="28" fill="none" aria-hidden="true"><path d="M20 3c1.8 9.2 7.8 15.2 17 17-9.2 1.8-15.2 7.8-17 17-1.8-9.2-7.8-15.2-17-17C12.2 18.2 18.2 12.2 20 3Z" fill="currentColor"/><path d="M31.5 3.5c.6 3 2.5 4.9 5.5 5.5-3 .6-4.9 2.5-5.5 5.5C30.9 11.5 29 9.6 26 9c3-.6 4.9-2.5 5.5-5.5Z" fill="currentColor" opacity=".42"/></svg>`
 
 const styles = `
   :host {
@@ -118,18 +118,21 @@ const styles = `
     flex-shrink: 0;
   }
   .brand {
-    width: 38px;
-    height: 38px;
-    border-radius: 11px;
-    background: linear-gradient(135deg, #258545 0%, #15572c 100%);
-    color: white;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(27, 110, 57, 0.1);
+    border-radius: 12px;
+    background: linear-gradient(145deg, #fffef8 0%, #f4f8f4 100%);
     display: grid;
     place-items: center;
-    font-weight: 800;
-    font-size: 17px;
-    letter-spacing: -0.03em;
-    box-shadow: 0 4px 10px rgba(21, 87, 44, 0.2);
+    box-shadow: 0 4px 12px rgba(21, 87, 44, 0.12);
     flex-shrink: 0;
+  }
+  .brand img {
+    display: block;
+    width: 25px;
+    height: 34px;
+    object-fit: contain;
   }
   .identity { min-width: 0; flex: 1; }
   .identity-name {
@@ -210,15 +213,20 @@ const styles = `
     text-align: center;
   }
   .empty-avatar {
-    width: 52px;
-    height: 52px;
-    border-radius: 16px;
-    background: linear-gradient(145deg, #edf7f0 0%, #deefe4 100%);
-    color: var(--apn-green);
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: linear-gradient(145deg, #fffef8 0%, #f0f7f1 100%);
     display: grid;
     place-items: center;
     margin-bottom: 16px;
     box-shadow: inset 0 0 0 1px rgba(27, 110, 57, 0.08), 0 8px 24px rgba(27, 110, 57, 0.08);
+  }
+  .empty-avatar img {
+    display: block;
+    width: 31px;
+    height: 44px;
+    object-fit: contain;
   }
   .empty strong {
     display: block;
@@ -650,7 +658,7 @@ function elementClass(): CustomElementConstructor {
         <style>${styles}</style>
         <section class="panel right" role="dialog" aria-label="AGRIA, Asisten APN" aria-hidden="true">
           <header class="header">
-            <div class="brand" aria-hidden="true">A</div>
+            <div class="brand" aria-hidden="true"><img src="${APN_LOGO_DATA_URL}" alt="" /></div>
             <div class="identity">
               <div class="identity-name">
                 <span>AGRIA</span>
@@ -929,7 +937,10 @@ function elementClass(): CustomElementConstructor {
         const avatar = document.createElement('div')
         avatar.className = 'empty-avatar'
         avatar.setAttribute('aria-hidden', 'true')
-        avatar.innerHTML = SPARKLE_ICON
+        const logo = document.createElement('img')
+        logo.src = APN_LOGO_DATA_URL
+        logo.alt = ''
+        avatar.append(logo)
         
         const title = document.createElement('strong')
         title.textContent = 'Tanyakan apa saja'

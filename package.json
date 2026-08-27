@@ -1,9 +1,12 @@
 {
   "name": "@danyawn/chat-widget",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Headless client and Web Component for the APN Chat Platform.",
   "type": "module",
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -38,6 +41,6 @@
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
-    "typescript": "^5.7.2"
+    "typescript": "^7.0.2"
   }
 }
