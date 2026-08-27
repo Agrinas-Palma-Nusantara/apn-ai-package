@@ -835,7 +835,15 @@ function elementClass(): CustomElementConstructor {
         if (event.content !== undefined) assistant.content = event.content
         if (event.citations !== undefined) assistant.citations = event.citations
       }
-      if (event.type === 'error') this.error = event.message
+      if (event.type === 'error') {
+        if (event.code === 'provider_unavailable' && assistant) {
+          assistant.content = event.message
+          assistant.citations = []
+          this.error = ''
+        } else {
+          this.error = event.message
+        }
+      }
       this.render()
     }
 

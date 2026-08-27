@@ -26,7 +26,7 @@ export type ChatStreamEvent =
   | { type: 'token'; content: string; replace: boolean }
   | { type: 'done'; content?: string; citations?: Citation[]; followUpQuestions?: string[] }
   | { type: 'clarification'; number: string; candidates: Array<{ division: string; title: string }> }
-  | { type: 'error'; message: string }
+  | { type: 'error'; code?: string; message: string }
   | { type: 'closed' }
 
 export interface ChatClientConfig {

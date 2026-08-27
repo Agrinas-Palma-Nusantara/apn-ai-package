@@ -13,7 +13,7 @@ Add the APN package scope to the consuming app's `.npmrc`:
 Then install:
 
 ```bash
-npm install --save-exact @danyawn/chat-widget@0.1.2
+npm install --save-exact @danyawn/chat-widget@0.1.3
 ```
 
 The GitHub token used by npm needs `read:packages`. Publish manually with a token that has `write:packages`:

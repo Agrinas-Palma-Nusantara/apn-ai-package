@@ -79,6 +79,18 @@ test('parses citation and token SSE frames', () => {
   assert.equal(meta.citations[0].snippet, 'Langkah pertama')
 })
 
+test('preserves provider error code from SSE', () => {
+  const error = parseSseFrame(
+    'event: error\ndata: {"code":"provider_unavailable","message":"Layanan AI sedang mengalami gangguan sementara."}',
+  )
+
+  assert.deepEqual(error, {
+    type: 'error',
+    code: 'provider_unavailable',
+    message: 'Layanan AI sedang mengalami gangguan sementara.',
+  })
+})
+
 test('streams events and forwards AbortSignal', async (context) => {
   const previousFetch = globalThis.fetch
   context.after(() => { globalThis.fetch = previousFetch })

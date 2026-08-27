@@ -88,6 +88,7 @@ export function parseSseFrame(frame: string): ChatStreamEvent | null {
     case 'error':
       return {
         type: 'error',
+        code: typeof payload.code === 'string' ? payload.code : undefined,
         message: typeof payload.message === 'string' ? payload.message : 'Chat gagal diproses.',
       }
     default:
