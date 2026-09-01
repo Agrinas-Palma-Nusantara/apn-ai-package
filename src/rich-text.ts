@@ -20,6 +20,27 @@ export function normalizeListSpacing(text: string): string {
     .join("\n");
 }
 
+export function normalizeListNumbering(text: string): string {
+  let nextNumber: number | null = null;
+
+  return text
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => {
+      const ordered = line.match(/^(\s*)(\d+)([.)])(\s+)(.+)$/);
+      if (ordered) {
+        nextNumber ??= Number.parseInt(ordered[2] ?? "1", 10);
+        const normalized = `${ordered[1]}${nextNumber}${ordered[3]}${ordered[4]}${ordered[5]}`;
+        nextNumber += 1;
+        return normalized;
+      }
+      if (!line.trim() || /^\s*[-•]\s+/.test(line)) return line;
+      nextNumber = null;
+      return line;
+    })
+    .join("\n");
+}
+
 export function parseSourceNumbers(token: string): number[] {
   const body = token.match(/^\[sumber:\s*([\d,\s]+)\]$/i)?.[1];
   if (!body) return [];

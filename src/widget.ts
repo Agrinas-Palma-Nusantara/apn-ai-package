@@ -1,6 +1,6 @@
 import { createChatClient } from './client.js'
 import { APN_LOGO_DATA_URL } from './logo.js'
-import { normalizeListSpacing, parseSourceNumbers } from './rich-text.js'
+import { normalizeListNumbering, normalizeListSpacing, parseSourceNumbers } from './rich-text.js'
 import type {
   ChatClient,
   ChatMessage,
@@ -599,22 +599,26 @@ function renderRichText(
   root.className = 'rich-text'
   let list: HTMLUListElement | HTMLOListElement | null = null
 
-  for (const rawLine of normalizeListSpacing(text).split('\n')) {
+  const normalizedText = normalizeListNumbering(normalizeListSpacing(text))
+  for (const rawLine of normalizedText.split('\n')) {
     const line = rawLine.trim()
     if (!line) {
       list = null
       continue
     }
     const unordered = line.match(/^[-•]\s+(.+)$/)
-    const ordered = line.match(/^\d+[.)]\s+(.+)$/)
+    const ordered = line.match(/^(\d+)[.)]\s+(.+)$/)
     if (unordered || ordered) {
       const kind = unordered ? 'ul' : 'ol'
       if (!list || list.tagName.toLowerCase() !== kind) {
         list = document.createElement(kind)
+        if (ordered && list instanceof HTMLOListElement) {
+          list.start = Number.parseInt(ordered[1] ?? '1', 10)
+        }
         root.append(list)
       }
       const item = document.createElement('li')
-      appendInlineRichText(item, (unordered ?? ordered)?.[1] ?? line, sources, openDocument)
+      appendInlineRichText(item, unordered?.[1] ?? ordered?.[2] ?? line, sources, openDocument)
       list.append(item)
       continue
     }

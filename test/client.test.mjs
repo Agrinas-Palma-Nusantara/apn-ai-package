@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { createChatClient } from '../dist/index.js'
-import { normalizeListSpacing, parseSourceNumbers } from '../dist/rich-text.js'
+import { normalizeListNumbering, normalizeListSpacing, parseSourceNumbers } from '../dist/rich-text.js'
 import { parseSseFrame } from '../dist/sse.js'
 
 function jsonResponse(body, status = 200) {
@@ -122,6 +122,29 @@ test('keeps numbered markdown items in one continuous list', () => {
   assert.equal(
     normalizeListSpacing(input),
     '1. Persiapan\n1. Investigasi\n1. Pelaporan',
+  )
+})
+
+test('continues ordered numbering across nested bullets and repeated markdown markers', () => {
+  const input = [
+    '1. Tentukan kebutuhan',
+    '2. Jika nilainya paling banyak Rp50 juta',
+    '- Pabrik dapat melaksanakan pengadaan',
+    '- Bagian dapat melaksanakan pengadaan',
+    '1. Jika nilainya di atas Rp50 juta',
+    '1. Untuk kategori khusus',
+  ].join('\n')
+
+  assert.equal(
+    normalizeListNumbering(input),
+    [
+      '1. Tentukan kebutuhan',
+      '2. Jika nilainya paling banyak Rp50 juta',
+      '- Pabrik dapat melaksanakan pengadaan',
+      '- Bagian dapat melaksanakan pengadaan',
+      '3. Jika nilainya di atas Rp50 juta',
+      '4. Untuk kategori khusus',
+    ].join('\n'),
   )
 })
 
