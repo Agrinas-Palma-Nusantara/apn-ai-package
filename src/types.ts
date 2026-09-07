@@ -13,6 +13,8 @@ export interface ChatMessage {
   content: string
   createdAt: string
   citations: Citation[]
+  warnings?: string[]
+  finishReason?: string
 }
 
 export interface ChatHistoryItem {
@@ -24,7 +26,7 @@ export type ChatStreamEvent =
   | { type: 'status'; stage: string; label: string; elapsedMs: number }
   | { type: 'citations'; citations: Citation[]; warnings: string[] }
   | { type: 'token'; content: string; replace: boolean }
-  | { type: 'done'; content?: string; citations?: Citation[]; followUpQuestions?: string[] }
+  | { type: 'done'; content?: string; citations?: Citation[]; warnings?: string[]; finishReason?: string; followUpQuestions?: string[] }
   | { type: 'clarification'; number: string; candidates: Array<{ division: string; title: string }> }
   | { type: 'error'; code?: string; message: string }
   | { type: 'closed' }

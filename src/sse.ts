@@ -63,6 +63,9 @@ export function parseSseFrame(frame: string): ChatStreamEvent | null {
     case 'done':
       return {
         type: 'done',
+        warnings: Array.isArray(payload.warnings)
+          ? payload.warnings.filter((item): item is string => typeof item === 'string') : undefined,
+        finishReason: typeof payload.finish_reason === 'string' ? payload.finish_reason : undefined,
         content: typeof payload.content === 'string' ? payload.content : undefined,
         citations: Array.isArray(payload.sources) ? citations(payload.sources) : undefined,
         followUpQuestions: Array.isArray(payload.follow_up_questions)

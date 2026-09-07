@@ -1,6 +1,6 @@
 {
-  "name": "@danyawn/chat-widget",
-  "version": "0.1.4",
+  "name": "@agrinas-palma-nusantara/chat-widget",
+  "version": "0.1.5",
   "description": "Headless client and Web Component for the APN Chat Platform.",
   "type": "module",
   "files": [
@@ -28,12 +28,11 @@
     "prepublishOnly": "npm run typecheck && npm test && npm run smoke:package"
   },
   "publishConfig": {
-    "access": "restricted",
     "registry": "https://npm.pkg.github.com"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/danyawn/apn-ai-package.git"
+    "url": "git+https://github.com/Agrinas-Palma-Nusantara/apn-ai-package.git"
   },
   "license": "UNLICENSED",
   "peerDependencies": {

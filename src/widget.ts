@@ -1,6 +1,6 @@
 import { createChatClient } from './client.js'
 import { APN_LOGO_DATA_URL } from './logo.js'
-import { normalizeListNumbering, normalizeListSpacing, parseSourceNumbers } from './rich-text.js'
+import { normalizeListNumbering, normalizeListSpacing, parseSourceNumbers, splitTableRow, tableAlignment } from './rich-text.js'
 import type {
   ChatClient,
   ChatMessage,
@@ -80,8 +80,8 @@ const styles = `
     position: fixed;
     z-index: var(--apn-widget-z-index);
     bottom: 92px;
-    width: 384px;
-    height: min(620px, calc(100vh - 116px));
+    width: min(460px, calc(100vw - 48px));
+    height: min(720px, calc(100dvh - 116px));
     background: var(--apn-surface);
     color: var(--apn-text-main);
     border: 1px solid var(--apn-border);
@@ -247,15 +247,19 @@ const styles = `
   /* Message Bubble */
   .message { display: flex; width: 100%; }
   .message.user { justify-content: flex-end; }
-  .message.assistant { justify-content: flex-start; }
+  .message.assistant { justify-content: flex-start; min-width: 0; }
   .bubble {
     max-width: 86%;
     padding: 10px 13px;
-    font-size: 13px;
-    line-height: 1.55;
+    font-size: 14px;
+    line-height: 1.65;
     overflow-wrap: anywhere;
   }
   .assistant .bubble {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 16px;
     background: #ffffff;
     color: var(--apn-text-main);
     border: 1px solid var(--apn-border);
@@ -272,7 +276,7 @@ const styles = `
   }
 
   /* Safe rich text */
-  .rich-text { display: grid; gap: 8px; }
+  .rich-text { display: grid; gap: 12px; min-width: 0; }
   .rich-text p, .rich-text li { line-height: 1.58; }
   .rich-text ul, .rich-text ol { display: grid; gap: 5px; padding-left: 20px; }
   .rich-text li::marker { color: var(--apn-green); font-weight: 700; }
@@ -314,6 +318,23 @@ const styles = `
   button.inline-citation:hover { background: var(--apn-green-pill); border-color: #a9cdb5; }
   button.inline-citation:focus-visible { outline: 2px solid var(--apn-green); outline-offset: 1px; }
   span.inline-citation { cursor: default; }
+
+  .table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    border: 1px solid var(--apn-border);
+    border-radius: 10px;
+    scrollbar-width: thin;
+  }
+  .table-scroll:focus-visible { outline: 2px solid var(--apn-green); outline-offset: 2px; }
+  .rich-text table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 12px; line-height: 1.55; }
+  .rich-text th, .rich-text td { padding: 10px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--apn-border); overflow-wrap: normal; }
+  .rich-text th { background: #edf5ef; color: var(--apn-green-dark); font-weight: 650; }
+  .rich-text tbody tr:nth-child(even) { background: #f8fbf9; }
+  .rich-text tbody tr:last-child td { border-bottom: 0; }
+  .table-hint { color: var(--apn-text-muted); font-size: 11px; }
+  .answer-note { margin-top: 12px; padding: 8px 10px; border-radius: 8px; background: #fff8e8; color: #785921; font-size: 11px; line-height: 1.5; }
 
   /* Citations */
   .citations {
@@ -468,8 +489,9 @@ const styles = `
   }
   textarea {
     flex: 1;
-    min-height: 24px;
+    min-height: 28px;
     max-height: 96px;
+    min-width: 0;
     resize: none;
     border: 0 !important;
     outline: 0 !important;
@@ -498,6 +520,7 @@ const styles = `
   .send:hover:not(:disabled) { background: var(--apn-green-dark); }
   .send:active:not(:disabled) { transform: scale(0.92); }
   .send:disabled { opacity: 0.4; cursor: default; }
+  .send:focus-visible { outline: 2px solid var(--apn-green); outline-offset: 3px; }
 
   .disclaimer {
     margin: 7px 4px 0;
@@ -520,6 +543,8 @@ const styles = `
     .right { right: 18px; }
     .left { left: 18px; }
     .panel.open + .launcher { visibility: hidden; }
+    textarea { font-size: 16px; }
+    .composer { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -600,8 +625,46 @@ function renderRichText(
   let list: HTMLUListElement | HTMLOListElement | null = null
 
   const normalizedText = normalizeListNumbering(normalizeListSpacing(text))
-  for (const rawLine of normalizedText.split('\n')) {
-    const line = rawLine.trim()
+  const lines = normalizedText.split('\n')
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = (lines[index] ?? '').trim()
+    const alignment = tableAlignment(lines[index + 1] ?? '')
+    if (line.includes('|') && alignment) {
+      list = null
+      const wrapper = document.createElement('div')
+      wrapper.className = 'table-scroll'
+      wrapper.tabIndex = 0
+      wrapper.setAttribute('role', 'region')
+      wrapper.setAttribute('aria-label', 'Tabel jawaban, geser untuk melihat seluruh kolom')
+      const table = document.createElement('table')
+      const head = table.createTHead().insertRow()
+      splitTableRow(line).forEach((value, column) => {
+        const cell = document.createElement('th')
+        cell.scope = 'col'
+        cell.style.textAlign = alignment[column] ?? 'left'
+        appendInlineRichText(cell, value, sources, openDocument)
+        head.append(cell)
+      })
+      const body = table.createTBody()
+      index += 2
+      while (index < lines.length && (lines[index] ?? '').trim().includes('|')) {
+        const row = body.insertRow()
+        splitTableRow(lines[index] ?? '').forEach((value, column) => {
+          const cell = row.insertCell()
+          cell.style.textAlign = alignment[column] ?? 'left'
+          appendInlineRichText(cell, value, sources, openDocument)
+        })
+        index += 1
+      }
+      index -= 1
+      wrapper.append(table)
+      root.append(wrapper)
+      const hint = document.createElement('p')
+      hint.className = 'table-hint'
+      hint.textContent = 'Geser tabel untuk melihat seluruh kolom.'
+      root.append(hint)
+      continue
+    }
     if (!line) {
       list = null
       continue
@@ -778,7 +841,7 @@ function elementClass(): CustomElementConstructor {
       const content = (customText ?? this.textarea.value).trim()
       if (!content || this.sending || !this.client) return
       const history = this.messages
-        .filter((message) => message.content.trim())
+        .filter((message) => message.content.trim() && message.finishReason !== 'error')
         .slice(-10)
         .map((message) => ({ role: message.role, content: message.content }))
       const assistantId = `assistant-${Date.now()}`
@@ -796,15 +859,24 @@ function elementClass(): CustomElementConstructor {
       this.abortController = new AbortController()
       this.render()
 
+      let completed = false
       try {
         await this.client.streamMessage({
           message: content,
           history,
           signal: this.abortController.signal,
-          onEvent: (event) => this.handleStreamEvent(assistantId, event),
+          onEvent: (event) => {
+            if (event.type === 'done') completed = true
+            this.handleStreamEvent(assistantId, event)
+          },
         })
+        if (!completed && !this.abortController?.signal.aborted) {
+          const assistant = this.messages.find((message) => message.id === assistantId)
+          if (assistant) assistant.finishReason = 'error'
+          this.error = 'Koneksi terputus sebelum jawaban selesai. Silakan kirim ulang pertanyaan.'
+        }
       } catch (error) {
-        if (!this.abortController.signal.aborted) {
+        if (!this.abortController?.signal.aborted) {
           this.error = error instanceof Error ? error.message : 'Chat gagal diproses.'
           this.dispatchEvent(new CustomEvent('agrinas-chat:error', {
             detail: { message: this.error },
@@ -834,10 +906,15 @@ function elementClass(): CustomElementConstructor {
       if (event.type === 'token' && assistant) {
         assistant.content = event.replace ? event.content : assistant.content + event.content
       }
-      if (event.type === 'citations' && assistant) assistant.citations = event.citations
+      if (event.type === 'citations' && assistant) {
+        assistant.citations = event.citations
+        assistant.warnings = event.warnings
+      }
       if (event.type === 'done' && assistant) {
         if (event.content !== undefined) assistant.content = event.content
         if (event.citations !== undefined) assistant.citations = event.citations
+        assistant.warnings = event.warnings ?? assistant.warnings
+        assistant.finishReason = event.finishReason
       }
       if (event.type === 'error') {
         if (event.code === 'provider_unavailable' && assistant) {
@@ -943,6 +1020,12 @@ function elementClass(): CustomElementConstructor {
 
     private render() {
       if (!this.messagesElement) return
+      const previousTop = this.messagesElement.scrollTop
+      const followLatest = this.messagesElement.scrollHeight - previousTop - this.messagesElement.clientHeight < 72
+      const openSources = new Set(Array.from(this.messagesElement.querySelectorAll<HTMLElement>('[data-message-id]'))
+        .filter((row) => row.querySelector('details')?.open).map((row) => row.dataset.messageId))
+      const tableScroll = new Map(Array.from(this.messagesElement.querySelectorAll<HTMLElement>('[data-message-id]'))
+        .map((row) => [row.dataset.messageId, Array.from(row.querySelectorAll('.table-scroll')).map((table) => table.scrollLeft)]))
       this.messagesElement.replaceChildren()
       if (this.messages.length === 0) {
         const state = document.createElement('div')
@@ -968,6 +1051,7 @@ function elementClass(): CustomElementConstructor {
         for (const item of this.messages) {
           const row = document.createElement('article')
           row.className = `message ${item.role}`
+          row.dataset.messageId = item.id
           const bubble = document.createElement('div')
           bubble.className = 'bubble'
           
@@ -986,35 +1070,59 @@ function elementClass(): CustomElementConstructor {
             bubble.textContent = item.content
           }
 
-          if (item.citations && item.citations.length > 0) {
+          if (!active && item.role === 'assistant' && (
+            item.finishReason === 'length' || item.warnings?.some((warning) =>
+              ['context_budget_trimmed', 'context_assembly_trimmed', 'truncated_output'].includes(warning))
+          )) {
+            const note = document.createElement('p')
+            note.className = 'answer-note'
+            note.textContent = item.finishReason === 'length' || item.warnings?.includes('truncated_output')
+              ? 'Jawaban terpotong. Tanyakan bagian yang ingin dilanjutkan.'
+              : 'Jawaban berdasarkan bagian dokumen yang tersedia; sebagian rincian mungkin belum tercakup.'
+            bubble.append(note)
+          }
+          const citedNumbers = [...new Set([...item.content.matchAll(/\[sumber:\s*\d+(?:\s*,\s*\d+)*\]/gi)]
+            .flatMap((match) => parseSourceNumbers(match[0])))]
+          const sourceNumbers = item.warnings?.includes('catalog') && !citedNumbers.length
+            ? item.citations.map((_, index) => index + 1) : citedNumbers
+          const visibleSources = sourceNumbers.flatMap((number) => {
+            const source = item.citations[number - 1]
+            return source ? [{ number, source }] : []
+          })
+          if (visibleSources.length > 0) {
             const details = document.createElement('details')
             details.className = 'citations'
+            details.open = openSources.has(item.id)
             const summary = document.createElement('summary')
-            summary.innerHTML = `<svg class="chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg> ${item.citations.length} sumber referensi`
+            summary.innerHTML = `<svg class="chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg> ${visibleSources.length} rujukan digunakan`
             details.append(summary)
             
             const citationList = document.createElement('div')
             citationList.className = 'citation-list'
             
-            for (const source of item.citations) {
+            for (const { number, source } of visibleSources) {
               const citation = document.createElement('div')
               citation.className = 'citation'
               const citationTitle = document.createElement(source.documentId ? 'button' : 'strong')
               citationTitle.className = 'citation-title'
               if (citationTitle instanceof HTMLButtonElement && source.documentId) {
                 citationTitle.type = 'button'
-                citationTitle.setAttribute('aria-label', `Buka dokumen: ${source.title}`)
+                citationTitle.setAttribute('aria-label', `Buka sumber ${number}: ${source.title}`)
                 citationTitle.addEventListener('click', () => void this.openDocument(source.documentId!, source.title))
               }
               const citationIcon = document.createElement('span')
               citationIcon.innerHTML = DOC_ICON
               const citationLabel = document.createElement('span')
-              citationLabel.textContent = source.title
+              citationLabel.textContent = `[${number}] ${source.title}`
               citationTitle.append(citationIcon, citationLabel)
               citation.append(citationTitle)
               if (source.snippet) {
                 const snippet = document.createElement('div')
-                snippet.style.marginTop = '2px'
+                snippet.style.marginTop = '4px'
+                snippet.style.display = '-webkit-box'
+                snippet.style.webkitLineClamp = '3'
+                snippet.style.webkitBoxOrient = 'vertical'
+                snippet.style.overflow = 'hidden'
                 snippet.textContent = source.snippet
                 citation.append(snippet)
               }
@@ -1025,6 +1133,9 @@ function elementClass(): CustomElementConstructor {
           }
           row.append(bubble)
           this.messagesElement.append(row)
+          row.querySelectorAll('.table-scroll').forEach((table, index) => {
+            table.scrollLeft = tableScroll.get(item.id)?.[index] ?? 0
+          })
         }
       }
       this.statusElement.textContent = this.error
@@ -1038,7 +1149,7 @@ function elementClass(): CustomElementConstructor {
             this.abortController?.abort()
           }
         : null
-      this.messagesElement.scrollTop = this.messagesElement.scrollHeight
+      this.messagesElement.scrollTop = followLatest ? this.messagesElement.scrollHeight : previousTop
     }
   }
 }

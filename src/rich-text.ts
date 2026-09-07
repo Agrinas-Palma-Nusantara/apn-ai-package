@@ -53,3 +53,17 @@ export function parseSourceNumbers(token: string): number[] {
     ),
   ];
 }
+
+
+export function splitTableRow(line: string): string[] {
+  const cells = line.trim().replace(/^\|/, '').replace(/(?<!\\)\|$/, '').split(/(?<!\\)\|/)
+  return cells.map((cell) => cell.trim().replace(/\\\|/g, '|'))
+}
+
+export function tableAlignment(line: string): Array<'left' | 'center' | 'right'> | null {
+  if (!line.includes('|')) return null
+  const cells = splitTableRow(line)
+  if (!cells.length || cells.some((cell) => !/^:?-{3,}:?$/.test(cell))) return null
+  return cells.map((cell) => cell.startsWith(':') && cell.endsWith(':')
+    ? 'center' : cell.endsWith(':') ? 'right' : 'left')
+}

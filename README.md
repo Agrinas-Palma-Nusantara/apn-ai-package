@@ -1,22 +1,23 @@
-# `@danyawn/chat-widget`
+# `@agrinas-palma-nusantara/chat-widget`
 
 Headless TypeScript client and branded Web Component for the shared APN Chat Platform.
 
-## Install from GitHub Packages
+## Install
 
-Add the APN package scope to the consuming app's `.npmrc`:
+Configure the consuming project's `.npmrc` for GitHub Packages:
 
 ```ini
-@danyawn:registry=https://npm.pkg.github.com
+@agrinas-palma-nusantara:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
 ```
 
-Then install:
+Set `NODE_AUTH_TOKEN` to a GitHub token with `read:packages` for installation or `write:packages` for publishing. Do not commit the token.
 
 ```bash
-npm install --save-exact @danyawn/chat-widget@0.1.4
+npm install @agrinas-palma-nusantara/chat-widget@0.1.5
 ```
 
-The GitHub token used by npm needs `read:packages`. Publish manually with a token that has `write:packages`:
+Publish from this repository with an account authorized for the organization:
 
 ```bash
 npm publish
@@ -54,6 +55,7 @@ export async function GET(request: Request) {
 ```
 
 Derive `subject` from the authenticated server session. Never accept it directly from browser input.
+Use HTTPS for both the consuming application and Chat Platform API in production.
 
 ## Mount the popup
 
@@ -64,7 +66,7 @@ Render the adapter once near the root layout. It mounts the isolated Web Compone
 ```tsx
 'use client'
 
-import { ChatAgriaUI } from '@danyawn/chat-widget/react'
+import { ChatAgriaUI } from '@agrinas-palma-nusantara/chat-widget/react'
 
 export function AppChat() {
   return (
@@ -85,7 +87,7 @@ React is a peer dependency, so the package uses the consuming application's exis
 ### Web Component / plain TypeScript
 
 ```ts
-import { mountChatWidget } from '@danyawn/chat-widget'
+import { mountChatWidget } from '@agrinas-palma-nusantara/chat-widget'
 
 const widget = mountChatWidget({
   apiBaseUrl: 'https://chat-api.agrinas.id',
@@ -105,12 +107,12 @@ widget.newConversation()
 widget.destroy()
 ```
 
-The widget uses Shadow DOM, fixed APN branding, and only exposes position and z-index options. Messages live only in widget memory and disappear on refresh, `newConversation()`, or `destroy()`. Assistant responses render a safe Markdown subset (paragraphs, lists, headings, emphasis, inline code, and HTTP links). Citation links fetch document files with the same short-lived Bearer Chat Token; tokens are never placed in document URLs.
+The widget uses Shadow DOM, fixed APN branding, and only exposes position and z-index options. Messages live only in widget memory and disappear on refresh, `newConversation()`, or `destroy()`. Assistant responses render a safe Markdown subset (paragraphs, lists, headings, Markdown tables, emphasis, inline code, and HTTP links). Citation links fetch document files with the same short-lived Bearer Chat Token; tokens are never placed in document URLs.
 
 ## Headless client
 
 ```ts
-import { createChatClient } from '@danyawn/chat-widget'
+import { createChatClient } from '@agrinas-palma-nusantara/chat-widget'
 
 const chat = createChatClient({ apiBaseUrl, getAccessToken })
 
